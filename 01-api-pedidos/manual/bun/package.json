@@ -1,0 +1,17 @@
+{
+  "name": "api-pedidos",
+  "version": "1.0.0",
+  "description": "API de Gerenciamento de Pedidos - E-Commerce",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "elysia": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

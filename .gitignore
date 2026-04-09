@@ -1,0 +1,185 @@
+# ============================================================================
+# .gitignore - Workshop eSales
+# ============================================================================
+
+# Exclui o README da raiz (sera adicionado depois)
+/README.md
+
+# ────────────────────────────────────────────────────────────────────────────
+# Exercicios que NAO vao para o repo (usam zip separado)
+# ────────────────────────────────────────────────────────────────────────────
+/03-duckdb-bug/
+/05-seguranca-ctf/
+
+# ────────────────────────────────────────────────────────────────────────────
+# Arquivos do instrutor (nunca vao para o repo dos alunos)
+# ────────────────────────────────────────────────────────────────────────────
+SOLUCAO.md
+NOTAS-TECNICAS.md
+
+# ────────────────────────────────────────────────────────────────────────────
+# Dependencias
+# ────────────────────────────────────────────────────────────────────────────
+node_modules/
+vendor/
+bower_components/
+jspm_packages/
+
+# ────────────────────────────────────────────────────────────────────────────
+# Build artifacts
+# ────────────────────────────────────────────────────────────────────────────
+# Java / Maven
+target/
+*.class
+*.jar
+!gradle-wrapper.jar
+*.war
+*.ear
+*.nar
+.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+replay_pid*
+
+# Kotlin / Gradle
+build/
+.gradle/
+gradle-app.setting
+!gradle-wrapper.properties
+
+# Node / Bun / JS
+dist/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+.svelte-kit/
+
+# TypeScript
+*.tsbuildinfo
+
+# PHP
+composer.phar
+.phpunit.result.cache
+.phpunit.cache/
+
+# C / C++
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.exe
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.lo
+*.slo
+*.lai
+*.la
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.Python
+.pytest_cache/
+.tox/
+
+# ────────────────────────────────────────────────────────────────────────────
+# Test / Coverage
+# ────────────────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+.coverage
+htmlcov/
+
+# ────────────────────────────────────────────────────────────────────────────
+# Databases e dados temporarios
+# ────────────────────────────────────────────────────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ────────────────────────────────────────────────────────────────────────────
+# Datasets do Exercicio 04 — fonte unica em /data/, distribuido via
+# /data/distribute.sh ou /data/distribute.ps1 para todas as pastas
+# ────────────────────────────────────────────────────────────────────────────
+04-batch-performance/**/data/transactions_*.csv
+
+# Manter a pasta data/ existir (gitkeep) mas nao seus conteudos CSV
+!04-batch-performance/**/data/.gitkeep
+
+# O CSV descompactado de 1m na pasta raiz data/ e gerado pelo distribute.sh
+/data/transactions_1m.csv
+
+# ────────────────────────────────────────────────────────────────────────────
+# Logs
+# ────────────────────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ────────────────────────────────────────────────────────────────────────────
+# Env / Secrets
+# ────────────────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+!env-ubuntu.pem
+
+# ────────────────────────────────────────────────────────────────────────────
+# IDE / Editors
+# ────────────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.netrwhist
+
+# ────────────────────────────────────────────────────────────────────────────
+# OS
+# ────────────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ────────────────────────────────────────────────────────────────────────────
+# Claude Code / AI
+# ────────────────────────────────────────────────────────────────────────────
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+
+# ────────────────────────────────────────────────────────────────────────────
+# Outros
+# ────────────────────────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
