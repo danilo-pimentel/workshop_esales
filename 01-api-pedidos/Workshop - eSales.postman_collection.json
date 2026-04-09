@@ -1,0 +1,235 @@
+{
+	"info": {
+		"_postman_id": "e02de3a7-6fcf-49fd-87b4-0560ea34162a",
+		"name": "Workshop - eSales",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "3998970"
+	},
+	"item": [
+		{
+			"name": "produtos",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/produtos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"produtos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "produtos-busca",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/produtos?busca=notebook",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"produtos"
+					],
+					"query": [
+						{
+							"key": "busca",
+							"value": "notebook"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "produtos",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nome\": \"Produto Preco Negativo\",\r\n  \"preco\": -10.00,\r\n  \"estoque\": 5,\r\n  \"categoria\": \"Teste\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/produtos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"produtos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "produtos-paginado",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/produtos?page=1&limit=7",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"produtos"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "limit",
+							"value": "7"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pedidos",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"cliente_id\": 1,\r\n  \"itens\": [\r\n    { \"produto_id\": 1, \"quantidade\": 2 }\r\n  ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/pedidos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"pedidos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pedidos",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/pedidos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"pedidos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pedidos/id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/pedidos/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"pedidos",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pedidos?status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/pedidos?status=entregue&limit=200",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"pedidos"
+					],
+					"query": [
+						{
+							"key": "status",
+							"value": "entregue"
+						},
+						{
+							"key": "limit",
+							"value": "200"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "clientes",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/clientes",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"clientes"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
