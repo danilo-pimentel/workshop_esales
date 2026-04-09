@@ -1,6 +1,7 @@
 package com.treinamento.routes
 
 import com.treinamento.models.*
+import com.treinamento.util.toApiString
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -40,7 +41,7 @@ fun Route.pedidoRoutes() {
                             clienteId  = row[Pedidos.clienteId],
                             status     = row[Pedidos.status],
                             total      = row[Pedidos.total],
-                            createdAt  = row[Pedidos.createdAt].toString(),
+                            createdAt  = row[Pedidos.createdAt].toApiString(),
                             clienteNome = row[Clientes.nome]
                         )
                     }
@@ -85,7 +86,7 @@ fun Route.pedidoRoutes() {
                     clienteId       = row[Pedidos.clienteId],
                     status          = row[Pedidos.status],
                     total           = row[Pedidos.total],
-                    createdAt       = row[Pedidos.createdAt].toString(),
+                    createdAt       = row[Pedidos.createdAt].toApiString(),
                     clienteNome     = row[Clientes.nome],
                     clienteEmail    = row[Clientes.email],
                     clienteTelefone = row[Clientes.telefone],
@@ -163,7 +164,7 @@ fun Route.pedidoRoutes() {
                     clienteId = pedidoRow[Pedidos.clienteId],
                     status    = pedidoRow[Pedidos.status],
                     total     = pedidoRow[Pedidos.total],
-                    createdAt = pedidoRow[Pedidos.createdAt].toString()
+                    createdAt = pedidoRow[Pedidos.createdAt].toApiString()
                 )
             }
 
@@ -192,7 +193,7 @@ fun Route.pedidoRoutes() {
                         clienteId = row[Pedidos.clienteId],
                         status    = row[Pedidos.status],
                         total     = row[Pedidos.total],
-                        createdAt = row[Pedidos.createdAt].toString()
+                        createdAt = row[Pedidos.createdAt].toApiString()
                     )
                 }
             } ?: throw NoSuchElementException("Pedido $id não encontrado")

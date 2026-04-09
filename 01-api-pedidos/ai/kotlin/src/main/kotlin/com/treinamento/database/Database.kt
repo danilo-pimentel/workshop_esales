@@ -9,10 +9,15 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 
 fun initDatabase() {
+    // Use a temporary file that is deleted and recreated on each startup
+    // (matches Bun reference behavior of fresh in-memory database)
+    val dbFile = java.io.File(System.getProperty("java.io.tmpdir"), "pedidos-kotlin.db")
+    if (dbFile.exists()) dbFile.delete()
+
     val config = org.sqlite.SQLiteConfig()
     config.setPragma(org.sqlite.SQLiteConfig.Pragma.CASE_SENSITIVE_LIKE, "true")
     val ds = org.sqlite.SQLiteDataSource(config)
-    ds.url = "jdbc:sqlite:./pedidos.db"
+    ds.url = "jdbc:sqlite:${dbFile.absolutePath}"
     Database.connect(ds)
 
     transaction {

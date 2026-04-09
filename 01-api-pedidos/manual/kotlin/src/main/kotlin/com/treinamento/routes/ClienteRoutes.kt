@@ -1,6 +1,7 @@
 package com.treinamento.routes
 
 import com.treinamento.models.*
+import com.treinamento.util.toApiString
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -23,7 +24,7 @@ fun Route.clienteRoutes() {
                             nome      = row[Clientes.nome],
                             email     = row[Clientes.email],
                             telefone  = row[Clientes.telefone],
-                            createdAt = row[Clientes.createdAt].toString()
+                            createdAt = row[Clientes.createdAt].toApiString()
                         )
                     }
             }
@@ -48,7 +49,7 @@ fun Route.clienteRoutes() {
                             clienteId = row[Pedidos.clienteId],
                             status    = row[Pedidos.status],
                             total     = row[Pedidos.total],
-                            createdAt = row[Pedidos.createdAt].toString()
+                            createdAt = row[Pedidos.createdAt].toApiString()
                         )
                     }
 
@@ -59,7 +60,7 @@ fun Route.clienteRoutes() {
                     nome         = clienteRow[Clientes.nome],
                     email        = clienteRow[Clientes.email],
                     telefone     = clienteRow[Clientes.telefone],
-                    createdAt    = clienteRow[Clientes.createdAt].toString(),
+                    createdAt    = clienteRow[Clientes.createdAt].toApiString(),
                     pedidos      = pedidos,
                     totalPedidos = pedidos.size,
                     totalGasto   = Math.round(totalGasto * 100.0) / 100.0

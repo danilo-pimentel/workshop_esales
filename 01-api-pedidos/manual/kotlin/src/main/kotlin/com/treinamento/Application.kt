@@ -34,7 +34,6 @@ fun Application.module() {
             prettyPrint = true
             isLenient = true
             ignoreUnknownKeys = true
-            namingStrategy = JsonNamingStrategy.SnakeCase
         })
     }
 

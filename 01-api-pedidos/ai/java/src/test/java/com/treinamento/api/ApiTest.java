@@ -195,7 +195,7 @@ class ApiTest {
 
         long total = json.get("total").asLong();
         int limit = json.get("limit").asInt();
-        int totalPages = json.get("total_pages").asInt();
+        int totalPages = json.get("totalPages").asInt();
 
         int expectedTotalPages = (int) Math.ceil((double) total / limit);
         assertEquals(expectedTotalPages, totalPages,

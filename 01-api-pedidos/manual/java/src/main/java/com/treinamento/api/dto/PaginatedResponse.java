@@ -1,5 +1,6 @@
 package com.treinamento.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class PaginatedResponse<T> {
@@ -8,6 +9,8 @@ public class PaginatedResponse<T> {
     private int page;
     private int limit;
     private long total;
+
+    @JsonProperty("totalPages")
     private int totalPages;
 
     public PaginatedResponse(List<T> data, int page, int limit, long total) {
@@ -22,5 +25,7 @@ public class PaginatedResponse<T> {
     public int getPage() { return page; }
     public int getLimit() { return limit; }
     public long getTotal() { return total; }
+
+    @JsonProperty("totalPages")
     public int getTotalPages() { return totalPages; }
 }

@@ -1,6 +1,7 @@
 package com.treinamento.routes
 
 import com.treinamento.models.*
+import com.treinamento.util.toApiString
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -124,5 +125,5 @@ private fun ResultRow.toProduto() = Produto(
     preco     = this[Produtos.preco],
     estoque   = this[Produtos.estoque],
     categoria = this[Produtos.categoria],
-    createdAt = this[Produtos.createdAt].toString()
+    createdAt = this[Produtos.createdAt].toApiString()
 )
