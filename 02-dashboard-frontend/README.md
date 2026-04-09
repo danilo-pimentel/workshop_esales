@@ -62,44 +62,107 @@ bunx playwright test --reporter=list
 
 ### Parte 1 — Corrigir os bugs
 
-Os testes E2E (`tests/e2e.spec.ts`) expõem 5 bugs intencionais. Execute os testes para identificá-los e corrija o código-fonte.
+Existem **5 bugs intencionais** na aplicação. Execute os testes E2E para identificá-los:
 
-Testes que **falham** (indicam bugs):
-| Teste | Descrição do bug |
-|---|---|
-| `test_table_sorting` | Clicar no cabeçalho ordena a coluna, mas os dados não mudam de ordem |
-| `test_mobile_layout` | Em telas < 768px o conteúdo transborda horizontalmente |
-| `test_modal_closes_after_save` | Após salvar um produto, o modal permanece aberto |
-| `test_chart_renders` | O gráfico de vendas não exibe barras/linhas com dados |
-| `test_loading_states` | Nenhuma página exibe o spinner durante chamadas à API |
+```bash
+bun run test
+# ou com mais detalhes:
+bunx playwright test --reporter=list
+```
 
-Testes que **passam** (smoke tests):
+### Bugs e como reproduzir
+
+#### Bug 1 — Ordenação da tabela de produtos
+
+**Teste:** `test_table_sorting`
+
+**Como reproduzir manualmente:**
+1. Acesse **http://localhost:5173/produtos**
+2. Clique no cabeçalho da coluna "Nome" (ou "Preço", "Estoque")
+3. Observe que o indicador visual de ordenação muda (seta aparece), mas a **ordem das linhas da tabela não muda**
+4. Clique novamente e veja que continua sem reordenar
+
+**Resultado esperado:** Ao clicar no cabeçalho, as linhas devem ser reordenadas ascendente/descendente pela coluna clicada.
+
+---
+
+#### Bug 2 — Layout mobile (< 768px)
+
+**Teste:** `test_mobile_layout`
+
+**Como reproduzir manualmente:**
+1. Abra o dashboard em **http://localhost:5173**
+2. Abra o DevTools do navegador (F12) e ative o modo responsivo
+3. Defina a largura para menos de 768px (ex: iPhone SE, 375px)
+4. Observe que o conteúdo **transborda horizontalmente** e aparece scroll horizontal indesejado
+5. Tente navegar no menu lateral — ele ocupa espaço desnecessário em mobile
+
+**Resultado esperado:** Em telas < 768px, o sidebar deve colapsar/esconder e o conteúdo deve se ajustar à largura da tela sem scroll horizontal.
+
+---
+
+#### Bug 3 — Modal não fecha após salvar produto
+
+**Teste:** `test_modal_closes_after_save`
+
+**Como reproduzir manualmente:**
+1. Acesse **http://localhost:5173/produtos**
+2. Clique no botão "Editar" de qualquer produto
+3. Altere algum campo (ex: nome ou preço)
+4. Clique em "Salvar"
+5. Observe que a requisição é enviada com sucesso, mas o **modal permanece aberto** na tela
+
+**Resultado esperado:** Após salvar com sucesso, o modal deve fechar automaticamente e a lista de produtos deve ser atualizada com os novos dados.
+
+---
+
+#### Bug 4 — Gráfico de vendas não renderiza
+
+**Teste:** `test_chart_renders`
+
+**Como reproduzir manualmente:**
+1. Acesse a página inicial **http://localhost:5173/**
+2. Role até a seção do gráfico de vendas
+3. Observe que o gráfico aparece vazio (sem barras, sem linhas, sem dados visíveis)
+4. Os eixos estão desenhados, mas não há dados renderizados
+
+**Resultado esperado:** O gráfico deve exibir as vendas, pedidos e ticket médio com base nos dados retornados pela API.
+
+---
+
+#### Bug 5 — Nenhum loading state
+
+**Teste:** `test_loading_states`
+
+**Como reproduzir manualmente:**
+1. Abra **http://localhost:5173** (ou qualquer página do dashboard)
+2. No DevTools, em Network, defina a velocidade para "Slow 3G"
+3. Recarregue a página (F5)
+4. Observe que durante o carregamento **não há nenhum indicador visual** (spinner, skeleton, mensagem de "carregando...")
+5. A tela fica em branco até os dados chegarem
+
+**Resultado esperado:** Enquanto os dados estão sendo carregados da API, deve aparecer um spinner ou skeleton em cada página.
+
+---
+
+### Testes que **passam** (smoke tests — nao mexer)
+
 | Teste | Descrição |
 |---|---|
 | `test_dashboard_loads` | Cards de métricas renderizam |
 | `test_product_list` | Tabela de produtos renderiza |
 | `test_navigation` | Links do menu navegam corretamente |
 
+---
+
 ### Parte 2 — Restyling
 
 O arquivo `public/mockup.png` contém o design final esperado. Implemente:
 
 1. **Novo estilo do header e sidebar** conforme o mockup
-2. **Dark mode funcional** — o botão de lua/sol no header deve alternar o tema. Use a variante `dark:` do Tailwind (o `darkMode: 'class'` já está configurado). Dica: adicione/remova a classe `dark` no elemento `<html>`.
+2. **Dark mode funcional** — o botão de lua/sol no header deve alternar o tema (o `darkMode: 'class'` do Tailwind já está configurado)
 3. **Animações e transições** nos cards (hover effects, fade-in ao carregar)
 4. **Layout responsivo mobile-first** — sidebar colapsável em telas pequenas, tabelas com scroll horizontal
-
-### Dicas para as correções
-
-**Bug 1 (sorting):** O estado `sortKey` e `sortDir` são atualizados, mas a variável `data` passada para `.map()` nunca é ordenada. Crie uma cópia ordenada antes do `return`.
-
-**Bug 2 (mobile):** Adicione `sm:block hidden` no `<aside>` e remova o `ml-64` fixo. Use um estado para controlar a visibilidade do menu em mobile.
-
-**Bug 3 (modal):** Após o `await api.put(...)` com sucesso, chame `setIsModalOpen(false)` e `refetch()`.
-
-**Bug 4 (chart):** Os campos do objeto gerado em `buildChartData` são `vendas`, `pedidos` e `ticket`, mas o componente usa `dataKey="total_vendas"` e `dataKey="total_pedidos"`. Alinhe os nomes.
-
-**Bug 5 (loading):** Importe `LoadingSpinner` em cada página e renderize-o condicionalmente quando `isLoading === true`.
 
 ## Referência de comandos
 
