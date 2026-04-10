@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer utilities {
+  .font-mono {
+    font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  }
+
+  /* Scrollbar styling for devtools panels */
+  .devtools-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .devtools-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+  }
+  .devtools-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-600 rounded-full;
+  }
+  .devtools-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+}
+
+/* Syntax highlight tokens */
+.token-sql    { color: #f97316; font-weight: 600; }
+.token-cred   { color: #ef4444; font-weight: 600; }
+.token-error  { color: #facc15; font-weight: 600; }
+.token-string { color: #86efac; }
+.token-number { color: #67e8f9; }
+.token-key    { color: #c084fc; }
+.token-bool   { color: #fb923c; }
+.token-null   { color: #9ca3af; }

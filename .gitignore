@@ -9,7 +9,7 @@
 # Exercicios que NAO vao para o repo (usam zip separado)
 # ────────────────────────────────────────────────────────────────────────────
 /03-duckdb-bug/
-/05-seguranca-ctf/
+/05-seguranca-ctf/backend/
 
 # ────────────────────────────────────────────────────────────────────────────
 # Arquivos do instrutor (nunca vao para o repo dos alunos)
