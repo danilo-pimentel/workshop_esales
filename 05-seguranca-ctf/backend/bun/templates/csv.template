@@ -1,0 +1,4 @@
+id,nome,descricao,preco,categoria
+{{#products}}
+{{id}},{{nome}},{{descricao}},{{preco}},{{categoria}}
+{{/products}}

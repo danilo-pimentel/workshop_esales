@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CTF Security Monitor</title>
+  <style>
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --accent:    #58a6ff;
+      --red:       #ff4444;
+      --orange:    #ffa500;
+      --green:     #3fb950;
+      --yellow:    #d29922;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 1.2rem; color: var(--accent); }
+    header h1 span { color: var(--red); }
+
+    .status-bar {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .status-bar .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 4px;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .toolbar {
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .toolbar button {
+      background: var(--border);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.9rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+      transition: background 0.2s;
+    }
+
+    .toolbar button:hover { background: var(--accent); color: #000; }
+    .toolbar button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+    .toolbar input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      width: 200px;
+    }
+
+    .toolbar label { font-size: 0.8rem; color: var(--muted); }
+
+    .stats {
+      display: flex;
+      gap: 1rem;
+      padding: 0.75rem 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      min-width: 120px;
+      text-align: center;
+    }
+
+    .stat-card .value { font-size: 1.5rem; color: var(--accent); font-weight: bold; }
+    .stat-card .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+
+    .container { padding: 0 1.5rem 1.5rem; overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      margin-top: 0.5rem;
+    }
+
+    thead tr {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      position: sticky; top: 0;
+    }
+
+    th {
+      padding: 0.6rem 0.8rem;
+      text-align: left;
+      color: var(--muted);
+      font-weight: normal;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.5rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    tr:hover td { background: rgba(88, 166, 255, 0.05); cursor: pointer; }
+
+    .method-GET    { color: var(--green);  font-weight: bold; }
+    .method-POST   { color: var(--accent); font-weight: bold; }
+    .method-PUT    { color: var(--orange); font-weight: bold; }
+    .method-DELETE { color: var(--red);    font-weight: bold; }
+
+    .status-2xx { color: var(--green); }
+    .status-4xx { color: var(--orange); }
+    .status-5xx { color: var(--red); }
+
+    /* SQL keyword highlighting */
+    .sql-text { color: #e3b341; font-size: 0.75rem; }
+    .sql-kw   { color: var(--red); font-weight: bold; }
+
+    .tag-sqli   { background: var(--red);    color: #000; padding: 1px 5px; border-radius: 3px; font-size: 0.7rem; }
+    .tag-idor   { background: var(--orange); color: #000; padding: 1px 5px; border-radius: 3px; font-size: 0.7rem; }
+    .tag-admin  { background: var(--yellow); color: #000; padding: 1px 5px; border-radius: 3px; font-size: 0.7rem; }
+
+    /* Detail panel */
+    #detail-panel {
+      display: none;
+      position: fixed;
+      top: 0; right: 0;
+      width: 45%;
+      height: 100%;
+      background: var(--surface);
+      border-left: 2px solid var(--accent);
+      overflow-y: auto;
+      z-index: 100;
+      padding: 1.5rem;
+    }
+
+    #detail-panel.open { display: block; }
+
+    #detail-panel h2 {
+      color: var(--accent);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #detail-panel h2 button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+
+    .detail-section {
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .detail-section h3 {
+      background: var(--bg);
+      padding: 0.4rem 0.8rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-section pre {
+      padding: 0.8rem;
+      font-size: 0.75rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .vuln-badge {
+      display: inline-block;
+      background: rgba(255,68,68,0.15);
+      border: 1px solid var(--red);
+      color: var(--red);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      margin: 0.2rem;
+    }
+
+    #empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 3rem;
+      font-size: 0.9rem;
+    }
+
+    .auto-refresh-label { color: var(--green); font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CTF <span>Security</span> Monitor</h1>
+  <div class="status-bar">
+    <span><span class="dot"></span><span id="conn-status">Conectando...</span></span>
+    <span>Porta: <strong>4000</strong></span>
+    <span id="last-update">--</span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <button id="btn-refresh" onclick="fetchLogs()">Atualizar</button>
+  <button id="btn-auto" class="active" onclick="toggleAuto()">Auto: ON</button>
+  <button onclick="clearDisplay()">Limpar Tela</button>
+  <input id="filter-input" type="text" placeholder="Filtrar por path, SQL..." oninput="applyFilter()" />
+  <label>
+    <input type="checkbox" id="chk-sqli" onchange="applyFilter()" checked />
+    Destacar SQL Injection
+  </label>
+  <span class="auto-refresh-label" id="countdown"></span>
+</div>
+
+<div class="stats">
+  <div class="stat-card"><div class="value" id="stat-total">0</div><div class="label">Total Logs</div></div>
+  <div class="stat-card"><div class="value" id="stat-sqli" style="color:var(--red)">0</div><div class="label">SQL Injection</div></div>
+  <div class="stat-card"><div class="value" id="stat-errors" style="color:var(--orange)">0</div><div class="label">Erros 4xx/5xx</div></div>
+  <div class="stat-card"><div class="value" id="stat-logins">0</div><div class="label">Logins</div></div>
+  <div class="stat-card"><div class="value" id="stat-admin" style="color:var(--yellow)">0</div><div class="label">Admin Requests</div></div>
+</div>
+
+<div class="container">
+  <table id="log-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Hora</th>
+        <th>Metodo</th>
+        <th>Path</th>
+        <th>Status</th>
+        <th>IP</th>
+        <th>Body (preview)</th>
+        <th>SQL Query</th>
+        <th>Tags</th>
+      </tr>
+    </thead>
+    <tbody id="log-body">
+    </tbody>
+  </table>
+  <div id="empty-state">Aguardando logs... (atualizacao a cada 3s)</div>
+</div>
+
+<div id="detail-panel">
+  <h2>Detalhe do Log <button onclick="closeDetail()">x</button></h2>
+  <div id="detail-content"></div>
+</div>
+
+<script>
+  const API = '/api/logs?limit=200';
+  let allLogs = [];
+  let autoRefresh = true;
+  let timer = null;
+  let countdown = 3;
+
+  const SQL_KEYWORDS = ['SELECT','INSERT','UPDATE','DELETE','DROP','UNION','FROM',
+                        'WHERE','OR','AND','LIKE','INTO','VALUES','TABLE','--','/*','*/'];
+
+  function highlightSql(text) {
+    if (!text) return '<em style="color:var(--muted)">—</em>';
+    let escaped = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const chk = document.getElementById('chk-sqli');
+    if (!chk || !chk.checked) return `<span class="sql-text">${escaped}</span>`;
+    SQL_KEYWORDS.forEach(kw => {
+      const re = new RegExp(`\\b${kw}\\b`, 'gi');
+      escaped = escaped.replace(re, m => `<span class="sql-kw">${m}</span>`);
+    });
+    return `<span class="sql-text">${escaped}</span>`;
+  }
+
+  function detectTags(log) {
+    const tags = [];
+    const body = (log.REQUEST_BODY || log.requestBody || '').toLowerCase();
+    const sql  = (log.SQL_QUERY    || log.sqlQuery    || '').toLowerCase();
+    const path = (log.PATH         || log.path        || '').toLowerCase();
+
+    if (sql.includes("' or ") || sql.includes("'='") || sql.includes("--") ||
+        sql.includes("union select") || body.includes("' or ")) {
+      tags.push('<span class="tag-sqli">SQL INJECTION</span>');
+    }
+    if (path.includes('/admin') || (log.REQUEST_BODY || '').includes('X-Role')) {
+      tags.push('<span class="tag-admin">ADMIN</span>');
+    }
+    if (path.match(/\/api\/users\/\d+/) || path.match(/\/api\/orders\/\d+/)) {
+      tags.push('<span class="tag-idor">IDOR</span>');
+    }
+    return tags.join(' ');
+  }
+
+  function statusClass(code) {
+    if (!code) return '';
+    if (code < 300) return 'status-2xx';
+    if (code < 500) return 'status-4xx';
+    return 'status-5xx';
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '--';
+    const d = new Date(ts);
+    return d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+
+  function truncate(str, n=60) {
+    if (!str) return '';
+    str = String(str);
+    return str.length > n ? str.substring(0, n) + '...' : str;
+  }
+
+  function applyFilter() {
+    const q = document.getElementById('filter-input').value.toLowerCase();
+    renderTable(q ? allLogs.filter(l =>
+      (l.PATH||l.path||'').toLowerCase().includes(q) ||
+      (l.SQL_QUERY||l.sqlQuery||'').toLowerCase().includes(q) ||
+      (l.REQUEST_BODY||l.requestBody||'').toLowerCase().includes(q)
+    ) : allLogs);
+  }
+
+  function renderTable(logs) {
+    const tbody = document.getElementById('log-body');
+    const empty = document.getElementById('empty-state');
+
+    if (!logs.length) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = logs.map(log => {
+      const id      = log.ID         || log.id;
+      const method  = log.METHOD     || log.method || '';
+      const path    = log.PATH       || log.path || '';
+      const status  = log.STATUS_CODE|| log.statusCode;
+      const ip      = log.IP_ADDRESS || log.ipAddress || '';
+      const body    = log.REQUEST_BODY||log.requestBody||'';
+      const sql     = log.SQL_QUERY  || log.sqlQuery || '';
+      const ts      = log.CREATED_AT || log.createdAt;
+
+      const tags = detectTags(log);
+
+      return `<tr onclick="showDetail(${id})">
+        <td>${id}</td>
+        <td>${formatTime(ts)}</td>
+        <td><span class="method-${method}">${method}</span></td>
+        <td title="${path}">${truncate(path, 40)}</td>
+        <td class="${statusClass(status)}">${status||'--'}</td>
+        <td>${ip}</td>
+        <td title="${body.replace(/"/g,'&quot;')}">${truncate(body, 50)}</td>
+        <td>${highlightSql(truncate(sql, 80))}</td>
+        <td>${tags}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function updateStats(logs) {
+    document.getElementById('stat-total').textContent = logs.length;
+
+    const sqli = logs.filter(l => {
+      const sql = (l.SQL_QUERY||l.sqlQuery||'').toLowerCase();
+      return sql.includes("' or ") || sql.includes("union select") || sql.includes("--");
+    }).length;
+    document.getElementById('stat-sqli').textContent = sqli;
+
+    const errors = logs.filter(l => {
+      const s = l.STATUS_CODE||l.statusCode||0;
+      return s >= 400;
+    }).length;
+    document.getElementById('stat-errors').textContent = errors;
+
+    const logins = logs.filter(l => (l.PATH||l.path||'').includes('/auth/login')).length;
+    document.getElementById('stat-logins').textContent = logins;
+
+    const admin = logs.filter(l => (l.PATH||l.path||'').includes('/admin')).length;
+    document.getElementById('stat-admin').textContent = admin;
+  }
+
+  async function fetchLogs() {
+    try {
+      const res  = await fetch(API);
+      const data = await res.json();
+      allLogs = data.logs || [];
+      updateStats(allLogs);
+      applyFilter();
+      document.getElementById('conn-status').textContent = 'Conectado';
+      document.getElementById('last-update').textContent =
+        'Ultima atualizacao: ' + new Date().toLocaleTimeString('pt-BR');
+    } catch(e) {
+      document.getElementById('conn-status').textContent = 'Erro de conexao';
+    }
+  }
+
+  function toggleAuto() {
+    autoRefresh = !autoRefresh;
+    const btn = document.getElementById('btn-auto');
+    btn.textContent = `Auto: ${autoRefresh ? 'ON' : 'OFF'}`;
+    btn.className   = autoRefresh ? 'active' : '';
+    if (autoRefresh) startTimer();
+    else { clearTimeout(timer); document.getElementById('countdown').textContent=''; }
+  }
+
+  function startTimer() {
+    countdown = 3;
+    clearTimeout(timer);
+    tick();
+  }
+
+  function tick() {
+    if (!autoRefresh) return;
+    document.getElementById('countdown').textContent = `Proxima em ${countdown}s`;
+    if (countdown === 0) {
+      fetchLogs().then(() => { countdown = 3; tick(); });
+    } else {
+      countdown--;
+      timer = setTimeout(tick, 1000);
+    }
+  }
+
+  function clearDisplay() {
+    allLogs = [];
+    document.getElementById('log-body').innerHTML = '';
+    document.getElementById('empty-state').style.display = 'block';
+  }
+
+  function showDetail(id) {
+    const log = allLogs.find(l => (l.ID||l.id) === id);
+    if (!log) return;
+
+    const sql    = log.SQL_QUERY     || log.sqlQuery     || '';
+    const body   = log.REQUEST_BODY  || log.requestBody  || '';
+    const resp   = log.RESPONSE_PREVIEW||log.responsePreview||'';
+    const path   = log.PATH          || log.path         || '';
+    const method = log.METHOD        || log.method       || '';
+    const status = log.STATUS_CODE   || log.statusCode;
+    const ip     = log.IP_ADDRESS    || log.ipAddress    || '';
+    const ts     = log.CREATED_AT    || log.createdAt    || '';
+    const qp     = log.QUERY_PARAMS  || log.queryParams  || '';
+
+    const vulns = [];
+    if (sql.toLowerCase().includes("' or ") || sql.includes("--") || sql.toLowerCase().includes("union")) {
+      vulns.push('SQL Injection detectado');
+    }
+    if (path.match(/\/api\/users\/\d+/) || path.match(/\/api\/orders\/\d+/)) {
+      vulns.push('Possivel IDOR');
+    }
+    if (body.toLowerCase().includes('password')) {
+      vulns.push('Senha em texto claro no body');
+    }
+    if (path.includes('/api/logs')) {
+      vulns.push('Acesso a logs publicos (sem auth)');
+    }
+    if (path.includes('/admin')) {
+      vulns.push('Tentativa de acesso admin');
+    }
+
+    const vuln_html = vulns.length
+      ? vulns.map(v => `<span class="vuln-badge">${v}</span>`).join('')
+      : '<span style="color:var(--muted);font-size:0.75rem">Nenhuma vulnerabilidade detectada</span>';
+
+    document.getElementById('detail-content').innerHTML = `
+      <div class="detail-section">
+        <h3>Resumo</h3>
+        <pre><strong>ID:</strong>      ${id}
+<strong>Hora:</strong>    ${ts}
+<strong>Metodo:</strong>  <span class="method-${method}">${method}</span>
+<strong>Path:</strong>    ${path}
+<strong>Query:</strong>   ${qp || '—'}
+<strong>Status:</strong>  <span class="${statusClass(status)}">${status}</span>
+<strong>IP:</strong>      ${ip}</pre>
+      </div>
+
+      <div class="detail-section">
+        <h3>Vulnerabilidades Detectadas</h3>
+        <pre>${vuln_html}</pre>
+      </div>
+
+      <div class="detail-section">
+        <h3>SQL Query Executada</h3>
+        <pre>${highlightSql(sql || '— nenhuma —')}</pre>
+      </div>
+
+      <div class="detail-section">
+        <h3>Request Body (PODE CONTER SENHAS)</h3>
+        <pre>${body ? body.replace(/</g,'&lt;') : '— vazio —'}</pre>
+      </div>
+
+      <div class="detail-section">
+        <h3>Response Preview</h3>
+        <pre>${resp ? resp.replace(/</g,'&lt;') : '— vazio —'}</pre>
+      </div>
+    `;
+
+    document.getElementById('detail-panel').classList.add('open');
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-panel').classList.remove('open');
+  }
+
+  // Init
+  fetchLogs();
+  startTimer();
+</script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CTF API Monitor — Security Training</title>
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #c9d1d9;
+      --muted:    #8b949e;
+      --green:    #3fb950;
+      --red:      #f85149;
+      --yellow:   #d29922;
+      --blue:     #58a6ff;
+      --purple:   #bc8cff;
+      --orange:   #ffa657;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 16px; color: var(--red); letter-spacing: 1px; }
+    header .badge {
+      background: var(--red);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    .spacer { flex: 1; }
+
+    #status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      display: inline-block;
+    }
+    #status-dot.ok  { background: var(--green); }
+    #status-dot.err { background: var(--red);   }
+
+    #status-text { color: var(--muted); font-size: 11px; }
+    #counter     { color: var(--muted); font-size: 11px; }
+
+    /* ── Controls ── */
+    .controls {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .controls label { color: var(--muted); font-size: 11px; }
+    .controls select, .controls input {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-family: inherit;
+    }
+    .controls button {
+      background: var(--surface);
+      color: var(--blue);
+      border: 1px solid var(--blue);
+      border-radius: 4px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .controls button:hover { background: rgba(88,166,255,.1); }
+    .controls button.danger {
+      color: var(--red);
+      border-color: var(--red);
+    }
+    .controls button.danger:hover { background: rgba(248,81,73,.1); }
+
+    /* ── Stats bar ── */
+    #stats-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 6px 20px;
+      display: flex;
+      gap: 24px;
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    #stats-bar span b { color: var(--text); }
+
+    /* ── Log table ── */
+    #log-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      z-index: 10;
+    }
+    thead th:nth-child(1) { width: 52px; }   /* id */
+    thead th:nth-child(2) { width: 68px; }   /* time */
+    thead th:nth-child(3) { width: 60px; }   /* method */
+    thead th:nth-child(4) { width: 180px; }  /* path */
+    thead th:nth-child(5) { width: 46px; }   /* status */
+    thead th:nth-child(6) { width: 260px; }  /* body */
+    thead th:nth-child(7) { width: auto; }   /* sql */
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+
+    /* Row colour coding by severity */
+    tbody tr.has-sqli  { border-left: 3px solid var(--red);    }
+    tbody tr.has-creds { border-left: 3px solid var(--yellow);  }
+
+    td {
+      padding: 6px 10px;
+      vertical-align: top;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 0; /* needed for text-overflow in fixed table */
+    }
+    td.wrap {
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow: visible;
+      max-width: none;
+    }
+
+    /* Method badges */
+    .method {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: .5px;
+    }
+    .method-GET    { background: rgba(63,185,80,.15);  color: var(--green);  }
+    .method-POST   { background: rgba(88,166,255,.15); color: var(--blue);   }
+    .method-PUT    { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .method-DELETE { background: rgba(248,81,73,.15);  color: var(--red);    }
+    .method-PATCH  { background: rgba(188,140,255,.15);color: var(--purple); }
+
+    /* Status codes */
+    .status-2xx { color: var(--green);  }
+    .status-3xx { color: var(--blue);   }
+    .status-4xx { color: var(--yellow); }
+    .status-5xx { color: var(--red);    }
+
+    /* SQL highlighting */
+    .sql-cell { color: var(--muted); font-size: 11px; }
+    .sql-kw    { color: var(--blue);   font-weight: bold; }
+    .sql-inj   { color: var(--red);    font-weight: bold; background: rgba(248,81,73,.15); border-radius: 2px; padding: 0 2px; }
+    .sql-str   { color: var(--orange); }
+    .sql-fn    { color: var(--purple); }
+
+    /* Body highlighting */
+    .body-cell  { color: var(--muted); font-size: 11px; }
+    .cred-field { color: var(--yellow); font-weight: bold; }
+
+    /* empty state */
+    #empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>&#9888; CTF API MONITOR</h1>
+  <span class="badge">VULNERABLE</span>
+  <span class="badge" style="background:var(--yellow);color:#000;">EDUCATIONAL ONLY</span>
+  <div class="spacer"></div>
+  <span id="status-dot"></span>&nbsp;
+  <span id="status-text">Connecting…</span>&nbsp;&nbsp;
+  <span id="counter">0 logs</span>
+</header>
+
+<div class="controls">
+  <label>Auto-refresh:</label>
+  <select id="interval-select">
+    <option value="2000">2s</option>
+    <option value="5000" selected>5s</option>
+    <option value="10000">10s</option>
+    <option value="0">Off</option>
+  </select>
+
+  <label>Filter:</label>
+  <select id="filter-method">
+    <option value="">All methods</option>
+    <option value="GET">GET</option>
+    <option value="POST">POST</option>
+    <option value="PUT">PUT</option>
+    <option value="DELETE">DELETE</option>
+  </select>
+
+  <label>Path contains:</label>
+  <input id="filter-path" type="text" placeholder="/api/auth/login" style="width:180px" />
+
+  <label>Show SQL only:</label>
+  <input id="filter-sql" type="checkbox" />
+
+  <label>Show creds only:</label>
+  <input id="filter-creds" type="checkbox" />
+
+  <button onclick="fetchLogs()">&#8635; Refresh</button>
+  <button class="danger" onclick="clearLogs()">&#128465; Clear Logs</button>
+</div>
+
+<div id="stats-bar">
+  <span>Total: <b id="s-total">-</b></span>
+  <span>SQLi attempts: <b id="s-sqli" style="color:var(--red)">0</b></span>
+  <span>Creds exposed: <b id="s-creds" style="color:var(--yellow)">0</b></span>
+  <span>Errors (5xx): <b id="s-err" style="color:var(--red)">0</b></span>
+  <span>Last fetch: <b id="s-time">-</b></span>
+</div>
+
+<div id="log-container">
+  <div id="empty">No logs yet. Make some requests to the API on port 4000.</div>
+  <table id="log-table" style="display:none">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Time</th>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Status</th>
+        <th>Body (credentials)</th>
+        <th>SQL Query</th>
+      </tr>
+    </thead>
+    <tbody id="log-tbody"></tbody>
+  </table>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:4000';
+  let timer = null;
+  let allLogs = [];
+
+  // ── SQL keyword highlighting ───────────────────────────────────────────────
+  const SQL_KEYWORDS = /\b(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN|UNION|AND|OR|NOT|LIKE|IN|IS|NULL|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|DROP|CREATE|TABLE|ALTER|INTO|VALUES|SET|ON|AS|INNER|LEFT|RIGHT|OUTER|CROSS|DISTINCT|ALL|EXISTS|CASE|WHEN|THEN|ELSE|END|CAST|BETWEEN)\b/gi;
+  const SQL_INJ_PATTERNS = /('|--|;|\/\*|\*\/|xp_|SLEEP|BENCHMARK|LOAD_FILE|OUTFILE|UNION\s+SELECT|OR\s+['"]?1['"]?\s*=\s*['"]?1|OR\s+\d+\s*=\s*\d+|'\s*OR\s*'|1=1|1=2)/gi;
+  const SQL_STRINGS = /'[^']*'/g;
+  const SQL_FUNCS   = /\b(COUNT|SUM|AVG|MAX|MIN|COALESCE|IFNULL|SUBSTR|LENGTH|UPPER|LOWER|REPLACE|TRIM|ROUND|DATETIME|DATE|NOW|sqlite_master|sqlite_version)\b/gi;
+  const CRED_FIELDS = /"(password|senha|pass|secret|token|key|pwd)":\s*"([^"]*)"/gi;
+
+  function highlightSQL(sql) {
+    if (!sql) return '<span style="color:var(--muted)">—</span>';
+    let s = sql
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    // Order matters: inject patterns first (most specific)
+    s = s.replace(SQL_INJ_PATTERNS, m => `<span class="sql-inj">${m}</span>`);
+    s = s.replace(SQL_KEYWORDS,      m => `<span class="sql-kw">${m}</span>`);
+    s = s.replace(SQL_FUNCS,         m => `<span class="sql-fn">${m}</span>`);
+    s = s.replace(SQL_STRINGS,       m => `<span class="sql-str">${m}</span>`);
+    return `<span class="sql-cell">${s}</span>`;
+  }
+
+  function highlightBody(body) {
+    if (!body) return '<span style="color:var(--muted)">—</span>';
+    let s = body
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    s = s.replace(CRED_FIELDS, (match, field, val) =>
+      `<span class="cred-field">"${field}"</span>: <span style="color:var(--red)">"${val}"</span>`
+    );
+    return `<span class="body-cell">${s}</span>`;
+  }
+
+  function statusClass(code) {
+    if (!code) return '';
+    if (code < 300) return 'status-2xx';
+    if (code < 400) return 'status-3xx';
+    if (code < 500) return 'status-4xx';
+    return 'status-5xx';
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts.replace(' ', 'T') + 'Z');
+    return d.toLocaleTimeString('pt-BR', {hour12: false});
+  }
+
+  function hasSQLi(log) {
+    if (!log.sql_query) return false;
+    return /('|--|UNION\s+SELECT|OR\s+['"]?1|1=1)/i.test(log.sql_query);
+  }
+
+  function hasCreds(log) {
+    if (!log.body) return false;
+    return /"password"\s*:/i.test(log.body);
+  }
+
+  function applyFilters(logs) {
+    const method   = document.getElementById('filter-method').value;
+    const path     = document.getElementById('filter-path').value.toLowerCase();
+    const sqlOnly  = document.getElementById('filter-sql').checked;
+    const credsOnly= document.getElementById('filter-creds').checked;
+
+    return logs.filter(l => {
+      if (method   && l.method !== method)          return false;
+      if (path     && !l.path?.toLowerCase().includes(path)) return false;
+      if (sqlOnly  && !l.sql_query)                 return false;
+      if (credsOnly && !hasCreds(l))                return false;
+      return true;
+    });
+  }
+
+  function renderLogs(logs) {
+    const filtered = applyFilters(logs);
+    const tbody = document.getElementById('log-tbody');
+    const table = document.getElementById('log-table');
+    const empty = document.getElementById('empty');
+
+    if (filtered.length === 0) {
+      table.style.display = 'none';
+      empty.style.display = 'flex';
+      empty.textContent = logs.length === 0
+        ? 'No logs yet. Make some requests to the API on port 4000.'
+        : 'No logs match the current filter.';
+      return;
+    }
+
+    table.style.display = 'table';
+    empty.style.display = 'none';
+
+    tbody.innerHTML = filtered.map(log => {
+      const rowClass = hasSQLi(log) ? 'has-sqli' : hasCreds(log) ? 'has-creds' : '';
+      const path = (log.path || '') + (log.query_string ? '?' + log.query_string : '');
+
+      return `<tr class="${rowClass}">
+        <td title="${log.id}">${log.id}</td>
+        <td title="${log.created_at}">${formatTime(log.created_at)}</td>
+        <td><span class="method method-${log.method}">${log.method || '-'}</span></td>
+        <td title="${path}">${path}</td>
+        <td class="${statusClass(log.response_status)}">${log.response_status || '-'}</td>
+        <td class="wrap">${highlightBody(log.body)}</td>
+        <td class="wrap">${highlightSQL(log.sql_query)}</td>
+      </tr>`;
+    }).join('');
+
+    // Update stats
+    const sqliCount  = logs.filter(hasSQLi).length;
+    const credsCount = logs.filter(hasCreds).length;
+    const errCount   = logs.filter(l => l.response_status >= 500).length;
+
+    document.getElementById('s-total').textContent  = logs.length;
+    document.getElementById('s-sqli').textContent   = sqliCount;
+    document.getElementById('s-creds').textContent  = credsCount;
+    document.getElementById('s-err').textContent    = errCount;
+    document.getElementById('s-time').textContent   = new Date().toLocaleTimeString('pt-BR');
+  }
+
+  async function fetchLogs() {
+    const dot  = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+
+    try {
+      const res  = await fetch(`${API_BASE}/api/logs?limit=200`);
+      const data = await res.json();
+
+      allLogs = data.logs || [];
+      document.getElementById('counter').textContent = `${allLogs.length} logs`;
+
+      dot.className   = 'ok';
+      text.textContent = 'Connected';
+
+      renderLogs(allLogs);
+    } catch (err) {
+      dot.className    = 'err';
+      text.textContent = `Error: ${err.message}`;
+    }
+  }
+
+  async function clearLogs() {
+    if (!confirm('Clear all request logs from the database?')) return;
+    try {
+      await fetch(`${API_BASE}/api/logs`, { method: 'DELETE' });
+      allLogs = [];
+      renderLogs([]);
+      document.getElementById('counter').textContent = '0 logs';
+    } catch (err) {
+      alert('Failed to clear logs: ' + err.message);
+    }
+  }
+
+  function startTimer() {
+    if (timer) clearInterval(timer);
+    const ms = parseInt(document.getElementById('interval-select').value, 10);
+    if (ms > 0) {
+      timer = setInterval(fetchLogs, ms);
+    }
+  }
+
+  // Re-render on filter change (no network request)
+  document.getElementById('filter-method').addEventListener('change', () => renderLogs(allLogs));
+  document.getElementById('filter-path').addEventListener('input',   () => renderLogs(allLogs));
+  document.getElementById('filter-sql').addEventListener('change',   () => renderLogs(allLogs));
+  document.getElementById('filter-creds').addEventListener('change', () => renderLogs(allLogs));
+
+  document.getElementById('interval-select').addEventListener('change', () => {
+    startTimer();
+    fetchLogs();
+  });
+
+  // Initial load
+  fetchLogs();
+  startTimer();
+</script>
+</body>
+</html>

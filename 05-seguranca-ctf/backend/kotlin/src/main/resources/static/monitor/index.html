@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CTF API Monitor — Kotlin/Ktor</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+    }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+      border-bottom: 2px solid #f97316;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #f97316;
+      letter-spacing: 0.05em;
+    }
+    header .badge {
+      background: #7c3aed;
+      color: #ede9fe;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .controls label { font-size: 0.85rem; color: #9ca3af; }
+    .controls select, .controls button {
+      background: #1f2937;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .controls button:hover { background: #374151; }
+    #statusDot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #6b7280;
+      display: inline-block;
+      transition: background 0.3s;
+    }
+    #statusDot.alive   { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+    #statusDot.dead    { background: #ef4444; }
+    #statusDot.polling { background: #f59e0b; }
+
+    /* ── Stats bar ────────────────────────────────────────────── */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      padding: 14px 24px;
+      background: #161b22;
+      border-bottom: 1px solid #21262d;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 10px 18px;
+      text-align: center;
+      min-width: 110px;
+    }
+    .stat-card .val {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #58a6ff;
+    }
+    .stat-card .lbl {
+      font-size: 0.72rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    /* ── Vuln legend ──────────────────────────────────────────── */
+    .vuln-bar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 24px;
+      background: #0d1117;
+      border-bottom: 1px solid #21262d;
+      flex-wrap: wrap;
+    }
+    .vuln-pill {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      cursor: default;
+    }
+    .v1  { background:#7f1d1d; color:#fca5a5; }
+    .v2  { background:#78350f; color:#fde68a; }
+    .v3  { background:#14532d; color:#86efac; }
+    .v4  { background:#1e3a5f; color:#93c5fd; }
+    .v5  { background:#4a1d96; color:#ddd6fe; }
+    .v6  { background:#064e3b; color:#6ee7b7; }
+    .v7  { background:#3b1f00; color:#fbbf24; }
+
+    /* ── Log table ────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      padding: 0 24px 32px;
+      flex: 1;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.8rem;
+    }
+    thead tr { background: #161b22; }
+    th {
+      text-align: left;
+      padding: 8px 10px;
+      color: #8b949e;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid #30363d;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #21262d; transition: background 0.15s; }
+    tbody tr:hover { background: #1c2128; }
+    td { padding: 7px 10px; vertical-align: top; max-width: 320px; }
+    td.mono { font-family: 'Cascadia Code', 'Fira Code', monospace; word-break: break-all; }
+
+    /* Status code colouring */
+    .s2xx { color: #22c55e; font-weight: 700; }
+    .s4xx { color: #f59e0b; font-weight: 700; }
+    .s5xx { color: #ef4444; font-weight: 700; }
+
+    /* Method badges */
+    .method {
+      font-weight: 700;
+      font-family: monospace;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+    .GET    { background:#063970; color:#93c5fd; }
+    .POST   { background:#14532d; color:#86efac; }
+    .PUT    { background:#78350f; color:#fde68a; }
+    .DELETE { background:#7f1d1d; color:#fca5a5; }
+
+    /* SQL keyword highlighting */
+    .sql-cell { word-break: break-all; }
+    .kw-select    { color:#58a6ff; font-weight:700; }
+    .kw-union     { color:#f97316; font-weight:700; background:#f9731620; padding:0 2px; border-radius:2px; }
+    .kw-drop      { color:#ef4444; font-weight:900; background:#ef444420; padding:0 2px; border-radius:2px; }
+    .kw-delete    { color:#ef4444; font-weight:900; }
+    .kw-insert    { color:#a78bfa; font-weight:700; }
+    .kw-update    { color:#fbbf24; font-weight:700; }
+    .kw-or1eq1    { color:#f97316; font-weight:900; background:#f9731630; padding:0 3px; border-radius:3px; }
+    .kw-comment   { color:#6ee7b7; font-style:italic; }
+    .kw-from      { color:#e2e8f0; }
+    .kw-where     { color:#c084fc; }
+
+    /* Body password leaks */
+    .pw-leak { color: #fbbf24; font-weight: 700; }
+
+    /* Timestamps */
+    .ts { color: #6b7280; font-size: 0.75rem; white-space: nowrap; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 60px 0; color: #484f58; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="statusDot"></span>
+    <h1>CTF API Monitor</h1>
+    <span class="badge">Kotlin / Ktor — port 4000</span>
+  </div>
+  <div class="controls">
+    <label>Refresh:
+      <select id="intervalSel">
+        <option value="2000">2 s</option>
+        <option value="5000" selected>5 s</option>
+        <option value="10000">10 s</option>
+        <option value="0">Pause</option>
+      </select>
+    </label>
+    <label>Limit:
+      <select id="limitSel">
+        <option value="50" selected>50</option>
+        <option value="100">100</option>
+        <option value="200">200</option>
+      </select>
+    </label>
+    <button id="clearBtn" title="Clears all logs via DELETE /api/admin/logs with X-Role: admin header">
+      Clear Logs
+    </button>
+    <button id="refreshBtn">Refresh Now</button>
+  </div>
+</header>
+
+<!-- Stats bar -->
+<div class="stats-bar">
+  <div class="stat-card"><div class="val" id="sc-total">—</div><div class="lbl">Total Logs</div></div>
+  <div class="stat-card"><div class="val" id="sc-logins">—</div><div class="lbl">Login Attempts</div></div>
+  <div class="stat-card"><div class="val" id="sc-errors">—</div><div class="lbl">5xx Errors</div></div>
+  <div class="stat-card"><div class="val" id="sc-sql">—</div><div class="lbl">Logs with SQL</div></div>
+</div>
+
+<!-- Vulnerability legend -->
+<div class="vuln-bar">
+  <span class="vuln-pill v1">VULN-1 SQLi Login</span>
+  <span class="vuln-pill v2">VULN-2 SQLi Search</span>
+  <span class="vuln-pill v3">VULN-3 IDOR</span>
+  <span class="vuln-pill v4">VULN-4 Plaintext PW</span>
+  <span class="vuln-pill v5">VULN-5 Header Auth</span>
+  <span class="vuln-pill v6">VULN-6 Public Logs</span>
+  <span class="vuln-pill v7">VULN-7 Verbose Errors</span>
+</div>
+
+<!-- Log table -->
+<div class="table-wrap">
+  <table id="logTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Time</th>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Status</th>
+        <th>IP</th>
+        <th style="min-width:200px;">SQL Query <span class="vuln-pill v6" style="font-size:0.65rem;vertical-align:middle;">VULN-6</span></th>
+        <th style="min-width:180px;">Body (raw) <span class="vuln-pill v4" style="font-size:0.65rem;vertical-align:middle;">VULN-4</span></th>
+        <th>Query Params</th>
+      </tr>
+    </thead>
+    <tbody id="logBody">
+      <tr><td colspan="9" class="empty">Waiting for first poll…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const API_BASE   = '';   // same origin
+  const LOGS_URL   = `${API_BASE}/api/logs`;
+  const STATS_URL  = `${API_BASE}/api/logs/stats`;
+  const CLEAR_URL  = `${API_BASE}/api/admin/logs`;
+  const HEALTH_URL = `${API_BASE}/health`;
+
+  let pollTimer = null;
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function statusClass(code) {
+    if (!code) return '';
+    if (code >= 500) return 's5xx';
+    if (code >= 400) return 's4xx';
+    return 's2xx';
+  }
+
+  function methodBadge(m) {
+    const cls = ['GET','POST','PUT','DELETE'].includes(m) ? m : 'GET';
+    return `<span class="method ${cls}">${m || '?'}</span>`;
+  }
+
+  /** Highlight SQL keywords that indicate injection or interesting queries */
+  function highlightSql(raw) {
+    if (!raw) return '<span style="color:#484f58">—</span>';
+    let s = escHtml(raw);
+
+    // Dangerous keywords first (order matters — most specific first)
+    s = s.replace(/\bUNION\b/gi, '<span class="kw-union">UNION</span>');
+    s = s.replace(/\bDROP\b/gi,  '<span class="kw-drop">DROP</span>');
+    s = s.replace(/\bDELETE\b/gi,'<span class="kw-delete">DELETE</span>');
+    s = s.replace(/--/g,          '<span class="kw-comment">--</span>');
+    s = s.replace(/\bOR\s+['"1]=['"1]/gi, m => `<span class="kw-or1eq1">${m}</span>`);
+
+    // Structural keywords
+    s = s.replace(/\bSELECT\b/gi, '<span class="kw-select">SELECT</span>');
+    s = s.replace(/\bINSERT\b/gi, '<span class="kw-insert">INSERT</span>');
+    s = s.replace(/\bUPDATE\b/gi, '<span class="kw-update">UPDATE</span>');
+    s = s.replace(/\bFROM\b/gi,   '<span class="kw-from">FROM</span>');
+    s = s.replace(/\bWHERE\b/gi,  '<span class="kw-where">WHERE</span>');
+
+    return `<span class="sql-cell">${s}</span>`;
+  }
+
+  /** Highlight plaintext passwords inside body JSON */
+  function highlightBody(raw) {
+    if (!raw) return '<span style="color:#484f58">—</span>';
+    let s = escHtml(raw);
+    // Mark password values
+    s = s.replace(/"password"\s*:\s*"([^"]+)"/gi,
+      (_, pw) => `"password":<span class="pw-leak">"${escHtml(pw)}"</span>`);
+    return s;
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmt(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts.replace(' ','T') + 'Z');
+    return isNaN(d) ? ts : d.toLocaleTimeString();
+  }
+
+  // ── Render logs ────────────────────────────────────────────────────────────
+
+  function renderLogs(logs) {
+    const tbody = document.getElementById('logBody');
+    if (!logs || logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">No logs yet. Make some requests!</td></tr>';
+      return;
+    }
+    tbody.innerHTML = logs.map(r => `
+      <tr>
+        <td style="color:#6b7280">${r.id}</td>
+        <td class="ts">${fmt(r.createdAt)}</td>
+        <td>${methodBadge(r.method)}</td>
+        <td class="mono">${escHtml(r.path || '')}</td>
+        <td class="${statusClass(r.statusCode)}">${r.statusCode || 0}</td>
+        <td class="ts">${escHtml(r.ip || '')}</td>
+        <td class="mono">${highlightSql(r.sqlQuery)}</td>
+        <td class="mono">${highlightBody(r.body)}</td>
+        <td class="mono">${r.queryParams ? escHtml(r.queryParams) : '<span style="color:#484f58">—</span>'}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ── Fetch logs ─────────────────────────────────────────────────────────────
+
+  async function fetchLogs() {
+    const limit = document.getElementById('limitSel').value;
+    setDot('polling');
+    try {
+      const [logsRes, statsRes] = await Promise.all([
+        fetch(`${LOGS_URL}?limit=${limit}`),
+        fetch(STATS_URL)
+      ]);
+
+      if (logsRes.ok) {
+        const logs = await logsRes.json();
+        renderLogs(logs);
+        setDot('alive');
+      } else {
+        setDot('dead');
+      }
+
+      if (statsRes.ok) {
+        const s = await statsRes.json();
+        setText('sc-total',  s.total ?? '—');
+        setText('sc-logins', s.loginAttempts ?? '—');
+        setText('sc-errors', s.errors ?? '—');
+        setText('sc-sql',    s.requestsWithSql ?? '—');
+      }
+    } catch {
+      setDot('dead');
+    }
+  }
+
+  async function checkHealth() {
+    try {
+      const r = await fetch(HEALTH_URL);
+      setDot(r.ok ? 'alive' : 'dead');
+    } catch {
+      setDot('dead');
+    }
+  }
+
+  // ── Polling ────────────────────────────────────────────────────────────────
+
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    const interval = parseInt(document.getElementById('intervalSel').value, 10);
+    if (interval === 0) return;
+    fetchLogs();
+    pollTimer = setInterval(fetchLogs, interval);
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+
+  function setDot(state) {
+    const d = document.getElementById('statusDot');
+    d.className = '';
+    d.classList.add(state);
+  }
+
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  // ── Event listeners ────────────────────────────────────────────────────────
+
+  document.getElementById('intervalSel').addEventListener('change', startPolling);
+  document.getElementById('limitSel').addEventListener('change', fetchLogs);
+  document.getElementById('refreshBtn').addEventListener('click', fetchLogs);
+
+  document.getElementById('clearBtn').addEventListener('click', async () => {
+    if (!confirm('Clear all request logs?')) return;
+    try {
+      const r = await fetch(CLEAR_URL, {
+        method: 'DELETE',
+        headers: { 'X-Role': 'admin' }
+      });
+      if (r.ok) {
+        document.getElementById('logBody').innerHTML =
+          '<tr><td colspan="9" class="empty">Logs cleared.</td></tr>';
+        setText('sc-total', 0);
+      } else {
+        alert('Failed to clear logs: ' + r.status);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  });
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+
+  checkHealth();
+  startPolling();
+</script>
+</body>
+</html>

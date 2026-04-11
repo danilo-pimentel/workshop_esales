@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureShop Monitor — Painel de Segurança</title>
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #c9d1d9;
+      --muted:    #8b949e;
+      --green:    #3fb950;
+      --red:      #f85149;
+      --yellow:   #d29922;
+      --blue:     #58a6ff;
+      --orange:   #e3b341;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 { font-size: 16px; color: var(--blue); }
+    header span { font-size: 11px; color: var(--muted); }
+
+    .pulse {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 6px;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      padding: 16px 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .stat-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .stat-card .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .stat-card.danger  .value { color: var(--red); }
+    .stat-card.warning .value { color: var(--yellow); }
+    .stat-card.ok      .value { color: var(--green); }
+    .stat-card.info    .value { color: var(--blue); }
+
+    .section {
+      padding: 0 24px 24px;
+    }
+
+    .section h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      padding-top: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    thead th {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      position: sticky;
+      top: 48px;
+    }
+
+    tbody td {
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover td { background: #1c2128; }
+
+    .suspicious td { background: rgba(248, 81, 73, 0.08) !important; }
+    .suspicious td:first-child { border-left: 3px solid var(--red); }
+
+    .method { font-weight: 700; font-size: 11px; }
+    .method.GET    { color: var(--green); }
+    .method.POST   { color: var(--blue); }
+    .method.PUT    { color: var(--orange); }
+    .method.DELETE { color: var(--red); }
+
+    .status-2xx { color: var(--green); }
+    .status-4xx { color: var(--yellow); }
+    .status-5xx { color: var(--red); }
+
+    .sql-cell {
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      color: var(--orange);
+    }
+
+    .body-cell {
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      color: var(--red);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .badge-danger  { background: rgba(248,81,73,.2); color: var(--red); }
+    .badge-warning { background: rgba(210,153,34,.2); color: var(--yellow); }
+
+    .endpoint-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+    }
+
+    .endpoint-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .endpoint-item .ep-path { color: var(--blue); font-family: monospace; font-size: 12px; }
+    .endpoint-item .ep-count {
+      background: var(--border);
+      border-radius: 999px;
+      padding: 1px 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    #last-update { font-size: 11px; color: var(--muted); }
+    #alert-banner {
+      display: none;
+      background: rgba(248,81,73,.15);
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      padding: 10px 16px;
+      margin: 0 24px 16px;
+      color: var(--red);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1><span class="pulse"></span>SecureShop Monitor</h1>
+  <span id="last-update">Aguardando dados...</span>
+</header>
+
+<div class="stats" id="stats-grid">
+  <div class="stat-card info">
+    <div class="label">Total de Requests</div>
+    <div class="value" id="stat-total">–</div>
+  </div>
+  <div class="stat-card danger">
+    <div class="label">Requests Suspeitos</div>
+    <div class="value" id="stat-suspicious">–</div>
+  </div>
+  <div class="stat-card warning">
+    <div class="label">Tentativas de Login</div>
+    <div class="value" id="stat-logins">–</div>
+  </div>
+  <div class="stat-card danger">
+    <div class="label">Erros 5xx</div>
+    <div class="value" id="stat-5xx">–</div>
+  </div>
+  <div class="stat-card ok">
+    <div class="label">Último ID de Log</div>
+    <div class="value" id="stat-lastid">–</div>
+  </div>
+</div>
+
+<div id="alert-banner"></div>
+
+<div class="section">
+  <h2>Endpoints mais acessados</h2>
+  <div class="endpoint-grid" id="endpoint-grid"></div>
+</div>
+
+<div class="section">
+  <h2>Últimos 100 requests <span style="color:var(--red)">(inclui senhas e SQL!)</span></h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Hora</th>
+        <th>Método</th>
+        <th>Caminho</th>
+        <th>Status</th>
+        <th>Query Params</th>
+        <th>Body (senha?)</th>
+        <th>SQL Executado</th>
+        <th>IP</th>
+        <th>Flags</th>
+      </tr>
+    </thead>
+    <tbody id="log-body">
+      <tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">Carregando...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const SQL_KEYWORDS = [
+    "union", "select", "drop", "insert", "update", "delete", "where",
+    "from", "or 1=1", "' or", "1=1", "--", "/*", "*/", "xp_", "exec(",
+    "script>", "onerror", "alert(", "sleep(", "benchmark(",
+  ];
+
+  function isSuspicious(log) {
+    const haystack = [
+      log.query_params ?? "",
+      log.body         ?? "",
+      log.sql_query    ?? "",
+      log.path         ?? "",
+    ].join(" ").toLowerCase();
+
+    return SQL_KEYWORDS.some(k => haystack.includes(k));
+  }
+
+  // ---------------------------------------------------------------
+  // Rendering helpers
+  // ---------------------------------------------------------------
+  function esc(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function statusClass(code) {
+    if (code >= 500) return "status-5xx";
+    if (code >= 400) return "status-4xx";
+    return "status-2xx";
+  }
+
+  function renderFlags(log) {
+    const flags = [];
+    if (isSuspicious(log))        flags.push('<span class="badge badge-danger">SQL INJECTION?</span>');
+    if ((log.body ?? "").toLowerCase().includes("password"))
+                                  flags.push('<span class="badge badge-warning">SENHA</span>');
+    if ((log.path ?? "").includes("/admin"))
+                                  flags.push('<span class="badge badge-danger">ADMIN</span>');
+    if ((log.path ?? "") === "/api/logs")
+                                  flags.push('<span class="badge badge-warning">LOG ACCESS</span>');
+    return flags.join(" ");
+  }
+
+  function truncate(str, n = 60) {
+    return str.length > n ? str.slice(0, n) + "…" : str;
+  }
+
+  // ---------------------------------------------------------------
+  // Main poll loop
+  // ---------------------------------------------------------------
+  async function fetchAndRender() {
+    let logs;
+    try {
+      const res  = await fetch("/api/logs?limit=100");
+      const data = await res.json();
+      logs       = data.logs ?? [];
+    } catch (e) {
+      document.getElementById("last-update").textContent = "Erro ao buscar logs: " + e.message;
+      return;
+    }
+
+    // ---- stats ----
+    const suspicious = logs.filter(isSuspicious).length;
+    const logins     = logs.filter(l => l.path === "/api/auth/login").length;
+    const errors5xx  = logs.filter(l => l.status_code >= 500).length;
+    const lastId     = logs.length ? logs[0].id : "–";
+
+    document.getElementById("stat-total").textContent     = logs.length;
+    document.getElementById("stat-suspicious").textContent= suspicious;
+    document.getElementById("stat-logins").textContent    = logins;
+    document.getElementById("stat-5xx").textContent       = errors5xx;
+    document.getElementById("stat-lastid").textContent    = lastId;
+
+    // ---- alert banner ----
+    const banner = document.getElementById("alert-banner");
+    if (suspicious > 0) {
+      banner.style.display = "block";
+      banner.textContent   = `⚠ ALERTA: ${suspicious} request(s) suspeito(s) detectado(s)! Verifique os registros abaixo.`;
+    } else {
+      banner.style.display = "none";
+    }
+
+    // ---- endpoint breakdown ----
+    const counts = {};
+    for (const l of logs) {
+      const key = (l.method ?? "?") + " " + (l.path ?? "?");
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const epGrid = document.getElementById("endpoint-grid");
+    epGrid.innerHTML = sorted.slice(0, 20).map(([ep, cnt]) => `
+      <div class="endpoint-item">
+        <span class="ep-path">${esc(ep)}</span>
+        <span class="ep-count">${cnt}</span>
+      </div>`).join("");
+
+    // ---- log table ----
+    const tbody = document.getElementById("log-body");
+    if (!logs.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">Nenhum log ainda.</td></tr>';
+    } else {
+      tbody.innerHTML = logs.map(l => {
+        const rowClass = isSuspicious(l) ? ' class="suspicious"' : "";
+        const ts       = (l.created_at ?? "").replace("T", " ").slice(0, 19);
+        return `<tr${rowClass}>
+          <td>${l.id}</td>
+          <td>${esc(ts)}</td>
+          <td><span class="method ${esc(l.method)}">${esc(l.method)}</span></td>
+          <td>${esc(l.path)}</td>
+          <td><span class="${statusClass(l.status_code)}">${l.status_code}</span></td>
+          <td title="${esc(l.query_params)}">${esc(truncate(l.query_params))}</td>
+          <td class="body-cell" title="${esc(l.body)}">${esc(truncate(l.body))}</td>
+          <td class="sql-cell" title="${esc(l.sql_query)}">${esc(truncate(l.sql_query, 80))}</td>
+          <td>${esc(l.ip)}</td>
+          <td>${renderFlags(l)}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    document.getElementById("last-update").textContent =
+      "Atualizado: " + new Date().toLocaleTimeString("pt-BR");
+  }
+
+  fetchAndRender();
+  setInterval(fetchAndRender, 2000); // poll every 2 s
+</script>
+</body>
+</html>

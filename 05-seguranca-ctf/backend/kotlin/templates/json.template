@@ -1,0 +1,4 @@
+{
+  "export_date": "{{date}}",
+  "products": {{products_json}}
+}
